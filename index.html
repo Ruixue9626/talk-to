@@ -122,6 +122,22 @@
         </div>
     </main>
 
+    <!-- 新增的分享內容顯示區塊 -->
+    <div id="page-share" class="hidden pt-24 pb-20 px-6 max-w-2xl mx-auto">
+        <div class="figma-card p-6 md:p-8">
+            <h2 id="share-title" class="text-2xl font-bold mb-4 text-gray-900"></h2>
+            <p id="share-content" class="leading-relaxed text-gray-700 mb-4"></p>
+            <div class="flex justify-between items-center text-sm text-gray-400">
+                <span id="share-time"></span>
+                <span id="share-mood" class="text-2xl"></span>
+            </div>
+        </div>
+        <div class="text-center mt-8">
+            <!-- 點擊此按鈕會回到日記編輯頁面 -->
+            <button onclick="navTo('diary')" class="py-3 px-6 pill-btn !bg-pink-400 !text-white">回到我的日記</button>
+        </div>
+    </div>
+
     <div id="mood-popup" class="fixed inset-0 z-[70] pointer-events-none">
         <div class="overlay absolute inset-0 bg-black/30 backdrop-blur-sm opacity-0 transition-opacity" onclick="togglePopup('mood-popup')"></div>
         <div class="ios-popup absolute bottom-0 left-0 right-0 bg-white rounded-t-[3rem] p-8 pb-12 flex flex-col items-center shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
@@ -157,9 +173,21 @@
         let diaries = JSON.parse(localStorage.getItem('talkto_v3_data') || '[]');
         let currentMood = '😊';
         let currentDiary = null;
+        let isSharingView = false; // 新增變數來追蹤是否處於分享頁面
 
         // 協議與初始化
-        if (localStorage.getItem('accepted_v3')) document.getElementById('agreement-modal').style.display = 'none';
+        window.onload = () => {
+            if (localStorage.getItem('accepted_v3')) {
+                document.getElementById('agreement-modal').style.display = 'none';
+            }
+            const sharedData = parseShareLink(); // 嘗試解析分享連結
+            if (sharedData) {
+                displaySharedDiary(sharedData);
+                isSharingView = true;
+            } else if (localStorage.getItem('accepted_v3')) { // 只有在同意協議後才導航到日記頁
+                navTo('diary');
+            }
+        };
         function acceptAgreement() { localStorage.setItem('accepted_v3', 't'); document.getElementById('agreement-modal').style.display = 'none'; }
 
         // 導覽邏輯
@@ -171,13 +199,19 @@
         }
 
         function navTo(page) {
+            // 如果從分享頁面導航離開，清除 URL hash
+            if (isSharingView && page !== 'share') {
+                history.replaceState(null, '', window.location.pathname + window.location.search); // 移除 hash
+                isSharingView = false; // 重設旗標
+            }
+
             document.getElementById('page-diary').classList.toggle('hidden', page !== 'diary');
             document.getElementById('page-records').classList.toggle('hidden', page !== 'records');
+            document.getElementById('page-share').classList.toggle('hidden', page !== 'share'); // 控制分享頁面的顯示
             document.getElementById('current-location').innerText = (page === 'diary' && !currentDiary) ? '首頁' : (page === 'records' ? '記錄' : '回顧');
             document.getElementById('header-share').classList.add('hidden');
             document.getElementById('header-back').classList.add('hidden');
             document.getElementById('nav-btn').classList.remove('hidden');
-            
             if(page === 'diary' && !currentDiary) clearForm();
             if(page === 'records') renderRecords();
             if(document.getElementById('sidebar').classList.contains('sidebar-open')) toggleSidebar();
@@ -328,6 +362,39 @@
             } catch (err) {
                 alert("內容太長了，沒辦法生成 QR Code... 嗚...");
             }
+        }
+
+        // 解析分享連結的參數
+        function parseShareLink() {
+            const hash = window.location.hash;
+            if (hash.startsWith('#/s?')) {
+                const params = new URLSearchParams(hash.substring(hash.indexOf('?')));
+                return {
+                    title: decodeURIComponent(params.get('t') || '無標題日記'),
+                    content: decodeURIComponent(params.get('c') || '無內容'),
+                    time: decodeURIComponent(params.get('d') || ''),
+                    mood: decodeURIComponent(params.get('m') || '😊')
+                };
+            }
+            return null; // 沒有找到分享連結
+        }
+
+        // 顯示分享的日記內容
+        function displaySharedDiary(data) {
+            // 隱藏所有主要內容頁面
+            document.getElementById('page-diary').classList.add('hidden');
+            document.getElementById('page-records').classList.add('hidden');
+
+            // 顯示分享頁面
+            document.getElementById('page-share').classList.remove('hidden');
+
+            // 填充內容
+            document.getElementById('share-title').innerText = data.title;
+            document.getElementById('share-content').innerText = data.content;
+            document.getElementById('share-time').innerText = data.time;
+            document.getElementById('share-mood').innerText = data.mood;
+
+            document.getElementById('current-location').innerText = '分享';
         }
     </script>
 </body>
