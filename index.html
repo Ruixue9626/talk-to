@@ -313,7 +313,7 @@
             
             // 縮短內容長度並簡化格式以確保 QR Code 能生成
             const shortContent = currentDiary.content.length > 100 ? currentDiary.content.substring(0, 100) + '...' : currentDiary.content;
-            const shareLink = `https://talk-to.onrender.con/#/s?t=${encodeURIComponent(currentDiary.title)}&c=${encodeURIComponent(shortContent)}&d=${currentDiary.time}&m=${encodeURIComponent(currentDiary.mood)}`;
+            const shareLink = `https://talk-to.onrender.com/#/s?t=${encodeURIComponent(currentDiary.title)}&c=${encodeURIComponent(shortContent)}&d=${currentDiary.time}&m=${encodeURIComponent(currentDiary.mood)}`;
             
             try {
                 new QRCode(qbox, {
